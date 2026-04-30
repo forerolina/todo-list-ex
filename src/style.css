@@ -154,6 +154,7 @@
   --success-bg: var(--color-primary-fixed);
   --success-text: var(--color-on-primary-fixed);
   --filled-button-label: var(--color-on-primary);
+  --secondary-button-color: var(--color-on-primary-fixed-variant);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -187,6 +188,7 @@
     --success-bg: var(--color-surface-container-high);
     --success-text: var(--color-primary-fixed-dim);
     --filled-button-label: var(--color-inverse-on-surface);
+    --secondary-button-color: var(--color-primary-fixed-dim);
   }
 }
 
@@ -209,14 +211,15 @@ body {
 
 #app {
   min-height: var(--size-screen-min-height);
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: var(--space-margin) var(--space-md);
 }
 
 .todo-app {
-  width: var(--size-full);
-  max-width: var(--container-max-width);
+  width: min(100%, var(--container-max-width));
+  margin-inline: auto;
   background: var(--surface);
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-lg);
@@ -242,6 +245,8 @@ body {
 
 .todo-form {
   margin-top: var(--space-md);
+  display: grid;
+  gap: var(--space-sm);
 }
 
 .todo-form label {
@@ -256,10 +261,12 @@ body {
 .todo-form-row {
   display: flex;
   gap: var(--space-sm);
+  align-items: center;
 }
 
 .todo-form-row input {
-  width: var(--size-full);
+  flex: 1;
+  min-width: 0;
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-default);
   padding: var(--space-sm) var(--space-md);
@@ -277,6 +284,7 @@ body {
   font-weight: var(--font-label-lg-weight);
   padding: var(--space-sm) var(--space-md);
   cursor: pointer;
+  flex-shrink: 0;
   transition: background-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
@@ -291,6 +299,50 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+.todo-list-section {
+  margin-top: var(--space-md);
+}
+
+.todo-list-section[aria-label='Completed todos'] {
+  border-top: var(--border-width) dotted var(--border);
+  padding-top: var(--space-md);
+}
+
+.todo-list-title {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: var(--font-label-lg-size);
+  font-weight: var(--font-label-lg-weight);
+  line-height: var(--font-label-lg-line-height);
+  letter-spacing: var(--font-label-lg-letter-spacing);
+}
+
+.todo-list-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.secondary-button {
+  border: var(--border-width) solid var(--secondary-button-color);
+  background: var(--color-surface-container-low);
+  color: var(--secondary-button-color);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-md);
+  font: inherit;
+  font-weight: var(--font-label-lg-weight);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    background-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.secondary-button:hover {
+  background: var(--color-surface-container);
+  border-color: var(--color-outline);
 }
 
 .todo-item {
@@ -313,6 +365,12 @@ body {
   color: var(--success-text);
   font-weight: var(--font-label-lg-weight);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .todo-text {
@@ -323,14 +381,33 @@ body {
 .delete-button {
   border: none;
   background: transparent;
-  color: var(--danger);
+  color: var(--muted-text);
   font: inherit;
   font-weight: var(--font-label-lg-weight);
   cursor: pointer;
+  border-radius: var(--radius-full);
+  padding: var(--space-xs);
+  min-width: var(--size-control-md);
+  min-height: var(--size-control-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.delete-button:hover {
+  background: var(--color-surface-container);
 }
 
 .is-completed {
   background: var(--success-bg);
+  border-color: var(--primary);
+}
+
+.is-completed .toggle-button {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--filled-button-label);
 }
 
 .is-completed .todo-text {

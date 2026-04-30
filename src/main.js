@@ -62,6 +62,35 @@ function deleteTodo(todoId) {
   render()
 }
 
+function clearCompletedTodos() {
+  todos = todos.filter((todo) => !todo.isCompleted)
+  saveTodos()
+  render()
+}
+
+function handleAppClick(event) {
+  const buttonElement = event.target.closest('button')
+  if (!buttonElement) return
+
+  if (buttonElement.dataset.action === 'clear-completed') {
+    clearCompletedTodos()
+    return
+  }
+
+  const todoElement = buttonElement.closest('.todo-item')
+  if (!todoElement) return
+
+  const todoId = todoElement.dataset.id
+  if (!todoId) return
+
+  if (buttonElement.dataset.action === 'toggle') {
+    toggleTodo(todoId)
+    return
+  }
+
+  if (buttonElement.dataset.action === 'delete') deleteTodo(todoId)
+}
+
 function createTodoMarkup(todo) {
   const escapedText = todo.text
     .replaceAll('&', '&amp;')
@@ -87,13 +116,15 @@ function createTodoMarkup(todo) {
         data-action="delete"
         aria-label="Delete todo"
       >
-        Delete
+        X
       </button>
     </li>
   `
 }
 
 function render() {
+  const activeTodos = todos.filter((todo) => !todo.isCompleted)
+  const completedTodos = todos.filter((todo) => todo.isCompleted)
   const hasTodos = todos.length > 0
 
   appElement.innerHTML = `
@@ -120,7 +151,31 @@ function render() {
 
       ${
         hasTodos
-          ? `<ul class="todo-list">${todos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
+          ? `
+            <section class="todo-list-section" aria-label="Active todos">
+              <h2 class="todo-list-title">To do</h2>
+              ${
+                activeTodos.length > 0
+                  ? `<ul class="todo-list">${activeTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
+                  : `<p class="empty-state">No active todos.</p>`
+              }
+            </section>
+            ${
+              completedTodos.length > 0
+                ? `
+                  <section class="todo-list-section" aria-label="Completed todos">
+                    <div class="todo-list-section-header">
+                      <h2 class="todo-list-title">Completed</h2>
+                      <button type="button" class="secondary-button" data-action="clear-completed">
+                        Clear completed
+                      </button>
+                    </div>
+                    <ul class="todo-list">${completedTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>
+                  </section>
+                `
+                : ''
+            }
+          `
           : `<p class="empty-state">No todos yet. Add one to get started.</p>`
       }
     </main>
@@ -128,7 +183,6 @@ function render() {
 
   const formElement = document.querySelector('#todo-form')
   const inputElement = document.querySelector('#todo-input')
-  const listElement = document.querySelector('.todo-list')
 
   formElement.addEventListener('submit', (event) => {
     event.preventDefault()
@@ -136,26 +190,7 @@ function render() {
     inputElement.value = ''
     inputElement.focus()
   })
-
-  if (!listElement) return
-
-  listElement.addEventListener('click', (event) => {
-    const buttonElement = event.target.closest('button')
-    if (!buttonElement) return
-
-    const todoElement = buttonElement.closest('.todo-item')
-    if (!todoElement) return
-
-    const todoId = todoElement.dataset.id
-    if (!todoId) return
-
-    if (buttonElement.dataset.action === 'toggle') {
-      toggleTodo(todoId)
-      return
-    }
-
-    if (buttonElement.dataset.action === 'delete') deleteTodo(todoId)
-  })
 }
 
+appElement.addEventListener('click', handleAppClick)
 render()
