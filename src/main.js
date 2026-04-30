@@ -1,6 +1,5 @@
 import './style.css'
 
-const STORAGE_KEY = 'todo-list-items'
 const appElement = document.querySelector('#app')
 
 function createTodoItem(text) {
@@ -10,40 +9,13 @@ function createTodoItem(text) {
     isCompleted: false,
   }
 }
-
-function loadTodos() {
-  const rawTodos = localStorage.getItem(STORAGE_KEY)
-  if (!rawTodos) return []
-
-  try {
-    const parsedTodos = JSON.parse(rawTodos)
-    if (!Array.isArray(parsedTodos)) return []
-
-    return parsedTodos.filter((todo) => {
-      return (
-        todo &&
-        typeof todo.id === 'string' &&
-        typeof todo.text === 'string' &&
-        typeof todo.isCompleted === 'boolean'
-      )
-    })
-  } catch {
-    return []
-  }
-}
-
-let todos = loadTodos()
-
-function saveTodos() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
-}
+let todos = []
 
 function addTodo(text) {
   const trimmedText = text.trim()
   if (!trimmedText) return
 
   todos = [createTodoItem(trimmedText), ...todos]
-  saveTodos()
   render()
 }
 
@@ -52,19 +24,16 @@ function toggleTodo(todoId) {
     if (todo.id !== todoId) return todo
     return { ...todo, isCompleted: !todo.isCompleted }
   })
-  saveTodos()
   render()
 }
 
 function deleteTodo(todoId) {
   todos = todos.filter((todo) => todo.id !== todoId)
-  saveTodos()
   render()
 }
 
 function clearCompletedTodos() {
   todos = todos.filter((todo) => !todo.isCompleted)
-  saveTodos()
   render()
 }
 

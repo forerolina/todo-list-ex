@@ -7,7 +7,9 @@ A simple todo app built with Vite and Vanilla JavaScript.
 - Add new todos
 - Mark todos as complete/incomplete
 - Delete todos
-- Persist todos in `localStorage` (survive page refresh)
+- View todos in separate To do and Completed sections
+- Clear all completed todos
+- Store todos in an in-memory JavaScript array (no backend)
 
 ## Tech
 

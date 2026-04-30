@@ -428,7 +428,7 @@ input:focus-visible {
   outline-offset: var(--focus-outline-offset);
 }
 
-@media (max-width:  var(--breakpoint-sm)) {
+@media (max-width: 640px) {
   .todo-app {
     padding: var(--space-md);
   }
