@@ -1,33 +1,176 @@
 :root {
+  /* Aetherial Finance — light palette (Corporate / Modern, MD3-inspired) */
   color-scheme: light dark;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --bg: #f5f6fb;
-  --surface: #ffffff;
-  --text: #1f2937;
-  --muted-text: #6b7280;
-  --border: #dbe1ea;
-  --primary: #3b82f6;
-  --primary-strong: #1d4ed8;
-  --danger: #dc2626;
-  --success-bg: #dcfce7;
-  --success-text: #166534;
+
+  /* --- Colors --- */
+  --color-surface: #faf8ff;
+  --color-surface-dim: #d3d9f6;
+  --color-surface-bright: #faf8ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f3ff;
+  --color-surface-container: #ebedff;
+  --color-surface-container-high: #e3e7ff;
+  --color-surface-container-highest: #dce1ff;
+  --color-on-surface: #141b30;
+  --color-on-surface-variant: #474554;
+  --color-inverse-surface: #292f46;
+  --color-inverse-on-surface: #eff0ff;
+  --color-outline: #787585;
+  --color-outline-variant: #c9c4d6;
+  --color-surface-tint: #5c47cd;
+  --color-primary: #5a45cb;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #7360e5;
+  --color-on-primary-container: #fffbff;
+  --color-inverse-primary: #c8bfff;
+  --color-secondary: #4257b6;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #869afe;
+  --color-on-secondary-container: #122c8c;
+  --color-tertiary: #6448b3;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #7e62ce;
+  --color-on-tertiary-container: #fffbff;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-primary-fixed: #e5deff;
+  --color-primary-fixed-dim: #c8bfff;
+  --color-on-primary-fixed: #190064;
+  --color-on-primary-fixed-variant: #442bb5;
+  --color-secondary-fixed: #dde1ff;
+  --color-secondary-fixed-dim: #b9c3ff;
+  --color-on-secondary-fixed: #001257;
+  --color-on-secondary-fixed-variant: #273d9c;
+  --color-tertiary-fixed: #e8ddff;
+  --color-tertiary-fixed-dim: #cebdff;
+  --color-on-tertiary-fixed: #21005e;
+  --color-on-tertiary-fixed-variant: #4f319c;
+  --color-background: #faf8ff;
+  --color-on-background: #141b30;
+  --color-surface-variant: #dce1ff;
+
+  /* --- Spacing (8pt grid) --- */
+  --space-base: 8px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-gutter: 24px;
+  --space-margin: 32px;
+
+  /* --- Border radius --- */
+  --radius-sm: 0.5rem;
+  --radius-default: 1rem;
+  --radius-md: 1.5rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-full: 9999px;
+
+  /* --- Typography — Inter MD3 roles --- */
+  --font-family-sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-family-sans);
+
+  --font-display-lg-size: 57px;
+  --font-display-lg-weight: 600;
+  --font-display-lg-line-height: 64px;
+  --font-display-lg-letter-spacing: -0.25px;
+
+  --font-headline-lg-size: 32px;
+  --font-headline-lg-weight: 500;
+  --font-headline-lg-line-height: 40px;
+  --font-headline-lg-letter-spacing: 0px;
+
+  --font-headline-md-size: 28px;
+  --font-headline-md-weight: 500;
+  --font-headline-md-line-height: 36px;
+  --font-headline-md-letter-spacing: 0px;
+
+  --font-title-lg-size: 22px;
+  --font-title-lg-weight: 500;
+  --font-title-lg-line-height: 28px;
+  --font-title-lg-letter-spacing: 0px;
+
+  --font-body-lg-size: 16px;
+  --font-body-lg-weight: 400;
+  --font-body-lg-line-height: 24px;
+  --font-body-lg-letter-spacing: 0.5px;
+
+  --font-body-md-size: 14px;
+  --font-body-md-weight: 400;
+  --font-body-md-line-height: 20px;
+  --font-body-md-letter-spacing: 0.25px;
+
+  --font-label-lg-size: 14px;
+  --font-label-lg-weight: 500;
+  --font-label-lg-line-height: 20px;
+  --font-label-lg-letter-spacing: 0.1px;
+
+  --font-label-sm-size: 11px;
+  --font-label-sm-weight: 500;
+  --font-label-sm-line-height: 16px;
+  --font-label-sm-letter-spacing: 0.5px;
+
+  --font-body-size: var(--font-body-lg-size);
+  --font-body-weight: var(--font-body-lg-weight);
+  --font-body-line-height: var(--font-body-lg-line-height);
+  --font-body-letter-spacing: var(--font-body-lg-letter-spacing);
+
+  /* --- Elevation --- */
+  --shadow-ambient-sm: 0 2px 8px rgba(41, 47, 70, 0.06);
+  --shadow-ambient-md: 0 10px 30px rgba(41, 47, 70, 0.1);
+  --shadow-ambient-lg: 0 20px 48px rgba(41, 47, 70, 0.14);
+
+  /* --- Semantic aliases (todo UI / shorter names) --- */
+  --bg: var(--color-background);
+  --surface: var(--color-surface-container-lowest);
+  --text: var(--color-on-surface);
+  --muted-text: var(--color-on-surface-variant);
+  --border: var(--color-outline-variant);
+  --primary: var(--color-primary);
+  --primary-strong: var(--color-on-primary-fixed-variant);
+  --danger: var(--color-error);
+  --success-bg: var(--color-primary-fixed);
+  --success-text: var(--color-on-primary-fixed);
+  --filled-button-label: var(--color-on-primary);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f172a;
-    --surface: #111827;
-    --text: #f3f4f6;
-    --muted-text: #9ca3af;
-    --border: #243041;
-    --primary: #60a5fa;
-    --primary-strong: #93c5fd;
-    --danger: #f87171;
-    --success-bg: #1f2937;
-    --success-text: #86efac;
+    --color-surface: #141b30;
+    --color-surface-dim: #0d111c;
+    --color-surface-bright: #1a2235;
+    --color-surface-container-lowest: #0d111c;
+    --color-surface-container-low: #141b30;
+    --color-surface-container: #1c2438;
+    --color-surface-container-high: #232c42;
+    --color-surface-container-highest: #292f46;
+    --color-on-surface: #eff0ff;
+    --color-on-surface-variant: #c9c4d6;
+    --color-inverse-surface: #e3e7ff;
+    --color-inverse-on-surface: #141b30;
+    --color-outline: #928f9f;
+    --color-outline-variant: #474554;
+    --color-background: #0d111c;
+    --color-on-background: #eff0ff;
+    --color-surface-variant: #292f46;
+
+    --bg: var(--color-background);
+    --surface: var(--color-surface-container-low);
+    --text: var(--color-on-surface);
+    --muted-text: var(--color-on-surface-variant);
+    --border: var(--color-outline-variant);
+    --primary: var(--color-inverse-primary);
+    --primary-strong: #e5deff;
+    --danger: #ffb4ab;
+    --success-bg: #2d2640;
+    --success-text: var(--color-primary-fixed-dim);
+    --filled-button-label: var(--color-inverse-on-surface);
   }
 }
 
@@ -42,13 +185,17 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  line-height: var(--font-body-line-height);
+  letter-spacing: var(--font-body-letter-spacing);
 }
 
 #app {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 2rem 1rem;
+  padding: var(--space-margin) var(--space-md);
 }
 
 .todo-app {
@@ -56,55 +203,63 @@ body {
   max-width: 42rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 0.9rem;
-  padding: 1.4rem;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-ambient-md);
 }
 
 .todo-header h1 {
   margin: 0;
-  font-size: 1.7rem;
+  font-size: var(--font-title-lg-size);
+  font-weight: var(--font-title-lg-weight);
+  line-height: var(--font-title-lg-line-height);
+  letter-spacing: var(--font-title-lg-letter-spacing);
 }
 
 .todo-header p {
-  margin: 0.35rem 0 0;
+  margin: var(--space-xs) 0 0;
   color: var(--muted-text);
+  font-size: var(--font-body-md-size);
+  line-height: var(--font-body-md-line-height);
+  letter-spacing: var(--font-body-md-letter-spacing);
 }
 
 .todo-form {
-  margin-top: 1.2rem;
+  margin-top: var(--space-md);
 }
 
 .todo-form label {
   display: inline-block;
-  margin-bottom: 0.45rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  font-size: var(--font-label-lg-size);
+  font-weight: var(--font-label-lg-weight);
+  line-height: var(--font-label-lg-line-height);
+  letter-spacing: var(--font-label-lg-letter-spacing);
 }
 
 .todo-form-row {
   display: flex;
-  gap: 0.65rem;
+  gap: var(--space-sm);
 }
 
 .todo-form-row input {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 0.7rem;
-  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-default);
+  padding: var(--space-sm) var(--space-md);
   font: inherit;
   color: inherit;
-  background: transparent;
+  background: var(--color-surface-container-low);
 }
 
 .todo-form-row button {
   border: none;
-  border-radius: 0.7rem;
+  border-radius: var(--radius-full);
   background: var(--primary);
-  color: #ffffff;
+  color: var(--filled-button-label);
   font: inherit;
-  font-weight: 600;
-  padding: 0.7rem 1rem;
+  font-weight: var(--font-label-lg-weight);
+  padding: var(--space-sm) var(--space-md);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -116,30 +271,31 @@ body {
 .todo-list {
   list-style: none;
   padding: 0;
-  margin: 1rem 0 0;
+  margin: var(--space-md) 0 0;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--space-sm);
 }
 
 .todo-item {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 0.7rem;
+  gap: var(--space-sm);
   align-items: center;
   border: 1px solid var(--border);
-  border-radius: 0.8rem;
-  padding: 0.65rem;
+  border-radius: var(--radius-default);
+  padding: var(--space-sm);
+  background: var(--color-surface-container-low);
 }
 
 .toggle-button {
   width: 1.5rem;
   height: 1.5rem;
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--success-text);
-  font-weight: 700;
+  font-weight: var(--font-label-lg-weight);
   cursor: pointer;
 }
 
@@ -153,7 +309,7 @@ body {
   background: transparent;
   color: var(--danger);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--font-label-lg-weight);
   cursor: pointer;
 }
 
@@ -167,8 +323,10 @@ body {
 }
 
 .empty-state {
-  margin: 1rem 0 0;
+  margin: var(--space-md) 0 0;
   color: var(--muted-text);
+  font-size: var(--font-body-md-size);
+  line-height: var(--font-body-md-line-height);
 }
 
 button:focus-visible,
@@ -179,7 +337,7 @@ input:focus-visible {
 
 @media (max-width: 640px) {
   .todo-app {
-    padding: 1rem;
+    padding: var(--space-md);
   }
 
   .todo-form-row {
