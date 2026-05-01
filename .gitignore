@@ -1,3 +1,5 @@
+.temp
+
 .env
 .pnpm-store
 supabase/.temp

@@ -50,6 +50,43 @@ body {
   background: var(--cds-support-error);
 }
 
+.todo-inline-info {
+  margin: 0;
+  padding: 0.75rem;
+  color: var(--cds-text-primary);
+  background: var(--cds-layer-accent-01);
+}
+
+.todo-account-status {
+  margin-top: 0.5rem;
+}
+
+.auth-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-02);
+}
+
+.auth-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-form {
+  margin: 0;
+}
+
+.auth-form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: end;
+}
+
 .todo-form {
   display: grid;
   gap: 0.5rem;
@@ -143,6 +180,10 @@ body {
 }
 
 @media (max-width: 40rem) {
+  .auth-form-row {
+    grid-template-columns: 1fr;
+  }
+
   .todo-form-row {
     grid-template-columns: 1fr;
   }

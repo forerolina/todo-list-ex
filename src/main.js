@@ -1,7 +1,17 @@
 import './style.scss'
-import { ensureSession } from './supabase-client'
+import {
+  ensureSession,
+  getSession,
+  linkAnonymousToEmailPassword,
+  onAuthStateChange,
+  signInWithMagicLink,
+  signInWithPassword,
+  signOut as signOutUser,
+  signUpWithEmail,
+} from './supabase-client'
 import {
   addTodo as addTodoRecord,
+  claimAnonymousTodos,
   clearCompletedTodos as clearCompletedTodoRecords,
   deleteTodo as deleteTodoRecord,
   listTodos,
@@ -20,9 +30,54 @@ function createTodoItem(text) {
 let todos = []
 let isLoading = true
 let errorMessage = ''
+let authMessage = ''
+let currentSession = null
+let isAuthSubmitting = false
+let authSyncVersion = 0
+const pendingAnonymousUserKey = 'todo-list:pending-anonymous-user-id'
 
 function setErrorMessage(message) {
   errorMessage = message
+}
+
+function setAuthMessage(message) {
+  authMessage = message
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function getCurrentUser() {
+  return currentSession?.user ?? null
+}
+
+function savePendingAnonymousUserId(userId) {
+  window.localStorage.setItem(pendingAnonymousUserKey, userId)
+}
+
+function readPendingAnonymousUserId() {
+  return window.localStorage.getItem(pendingAnonymousUserKey)
+}
+
+function clearPendingAnonymousUserId() {
+  window.localStorage.removeItem(pendingAnonymousUserKey)
+}
+
+function isAnonymousUser(user) {
+  return Boolean(user?.is_anonymous)
+}
+
+function getAccountLabel() {
+  const currentUser = getCurrentUser()
+  if (!currentUser) return 'Signed out'
+  if (isAnonymousUser(currentUser)) return 'Guest session'
+  return `Signed in as ${escapeHtml(currentUser.email ?? 'account user')}`
 }
 
 async function addTodo(text) {
@@ -135,12 +190,7 @@ async function handleAppChange(event) {
 }
 
 function createTodoMarkup(todo) {
-  const escapedText = todo.text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
+  const escapedText = escapeHtml(todo.text)
 
   return `
     <li class="todo-item ${todo.isCompleted ? 'is-completed' : ''}" data-id="${todo.id}">
@@ -168,13 +218,82 @@ function render() {
   const activeTodos = todos.filter((todo) => !todo.isCompleted)
   const completedTodos = todos.filter((todo) => todo.isCompleted)
   const emptyMessage = isLoading ? 'Loading your todos...' : 'No active todos.'
+  const currentUser = getCurrentUser()
+  const showPasswordForms = isAnonymousUser(currentUser)
+  const authSubmitLabel = isAuthSubmitting ? 'Working...' : 'Continue'
+  const authDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
+  const signOutDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
 
   appElement.innerHTML = `
     <main class="todo-app cds--css-grid" aria-live="polite">
       <header class="todo-header">
         <h1 class="cds--productive-heading-04">Todo List</h1>
         <p class="cds--body-compact-01">Track your tasks and keep moving.</p>
+        <p class="todo-account-status cds--body-compact-01">${getAccountLabel()}</p>
       </header>
+      <section class="auth-panel" aria-label="Authentication">
+        <div class="auth-panel-header">
+          <h2 class="todo-list-title">Account</h2>
+          ${
+            currentUser
+              ? `<button
+            type="button"
+            class="secondary-button cds--btn cds--btn--tertiary"
+            id="sign-out-button"
+            ${signOutDisabledAttribute}
+          >
+            Sign out
+          </button>`
+              : ''
+          }
+        </div>
+        ${
+          authMessage
+            ? `<p class="todo-inline-info" role="status">${escapeHtml(authMessage)}</p>`
+            : ''
+        }
+        ${
+          showPasswordForms
+            ? `
+        <form class="cds--form auth-form" id="sign-up-form">
+          <div class="auth-form-row">
+            <div class="cds--form-item">
+              <label class="cds--label" for="sign-up-email">Email</label>
+              <input class="cds--text-input" id="sign-up-email" name="email" type="email" required ${authDisabledAttribute} />
+            </div>
+            <div class="cds--form-item">
+              <label class="cds--label" for="sign-up-password">Password</label>
+              <input class="cds--text-input" id="sign-up-password" name="password" type="password" minlength="8" required ${authDisabledAttribute} />
+            </div>
+            <button class="cds--btn cds--btn--secondary" type="submit" ${authDisabledAttribute}>Create account</button>
+          </div>
+        </form>
+        <form class="cds--form auth-form" id="sign-in-form">
+          <div class="auth-form-row">
+            <div class="cds--form-item">
+              <label class="cds--label" for="sign-in-email">Email</label>
+              <input class="cds--text-input" id="sign-in-email" name="email" type="email" required ${authDisabledAttribute} />
+            </div>
+            <div class="cds--form-item">
+              <label class="cds--label" for="sign-in-password">Password</label>
+              <input class="cds--text-input" id="sign-in-password" name="password" type="password" minlength="8" required ${authDisabledAttribute} />
+            </div>
+            <button class="cds--btn cds--btn--secondary" type="submit" ${authDisabledAttribute}>${authSubmitLabel}</button>
+          </div>
+        </form>
+      `
+            : ''
+        }
+        <form class="cds--form auth-form" id="magic-link-form">
+          <div class="auth-form-row">
+            <div class="cds--form-item">
+              <label class="cds--label" for="magic-link-email">Email for magic link</label>
+              <input class="cds--text-input" id="magic-link-email" name="email" type="email" required ${authDisabledAttribute} />
+            </div>
+            <button class="cds--btn cds--btn--secondary" type="submit" ${authDisabledAttribute}>Send magic link</button>
+          </div>
+        </form>
+      </section>
       ${
         errorMessage
           ? `<p class="todo-inline-error" role="status">${errorMessage}</p>`
@@ -243,6 +362,10 @@ function render() {
 
   const formElement = document.querySelector('#todo-form')
   const inputElement = document.querySelector('#todo-input')
+  const signUpFormElement = document.querySelector('#sign-up-form')
+  const signInFormElement = document.querySelector('#sign-in-form')
+  const magicLinkFormElement = document.querySelector('#magic-link-form')
+  const signOutButtonElement = document.querySelector('#sign-out-button')
 
   formElement.addEventListener('submit', async (event) => {
     event.preventDefault()
@@ -251,23 +374,187 @@ function render() {
     inputElement.value = ''
     inputElement.focus()
   })
+
+  signUpFormElement?.addEventListener('submit', handleSignUpSubmit)
+  signInFormElement?.addEventListener('submit', handleSignInSubmit)
+  magicLinkFormElement?.addEventListener('submit', handleMagicLinkSubmit)
+  signOutButtonElement?.addEventListener('click', handleSignOutClick)
 }
 
 appElement.addEventListener('click', handleAppClick)
 appElement.addEventListener('change', handleAppChange)
 render()
 
-async function init() {
+async function syncSession(session) {
+  const syncVersion = ++authSyncVersion
+  const previousSession = currentSession
+
   try {
-    await ensureSession()
+    let activeSession = session
+    if (!activeSession) activeSession = await ensureSession()
+    if (syncVersion !== authSyncVersion) return
+
+    currentSession = activeSession
+    const previousUser = previousSession?.user
+    const activeUser = activeSession?.user
+    const pendingAnonymousUserId = readPendingAnonymousUserId()
+    const previousAnonymousUserId = previousUser?.is_anonymous
+      ? previousUser.id
+      : null
+    const sourceAnonymousUserId = previousAnonymousUserId ?? pendingAnonymousUserId
+    const shouldClaimAnonymousTodos =
+      Boolean(sourceAnonymousUserId) &&
+      Boolean(activeUser) &&
+      !activeUser.is_anonymous &&
+      sourceAnonymousUserId !== activeUser.id
+
+    if (shouldClaimAnonymousTodos) {
+      await claimAnonymousTodos(sourceAnonymousUserId)
+      if (syncVersion !== authSyncVersion) return
+      setAuthMessage('Signed in. Your guest todos were moved to this account.')
+      clearPendingAnonymousUserId()
+    }
+
+    if (activeUser && !activeUser.is_anonymous) clearPendingAnonymousUserId()
+
     todos = await listTodos()
+    if (syncVersion !== authSyncVersion) return
     setErrorMessage('')
   } catch {
+    if (syncVersion !== authSyncVersion) return
     setErrorMessage('Could not load todos. Check your Supabase configuration.')
   } finally {
+    if (syncVersion !== authSyncVersion) return
     isLoading = false
+    isAuthSubmitting = false
     render()
   }
+}
+
+async function handleSignUpSubmit(event) {
+  event.preventDefault()
+
+  const formData = new FormData(event.currentTarget)
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+  if (!email || !password) return
+
+  try {
+    isAuthSubmitting = true
+    setErrorMessage('')
+    setAuthMessage('')
+    render()
+
+    const currentUser = getCurrentUser()
+    if (isAnonymousUser(currentUser)) {
+      await linkAnonymousToEmailPassword(email, password)
+      setAuthMessage('Account created and linked to your current guest session.')
+    } else {
+      const signUpData = await signUpWithEmail(email, password)
+      setAuthMessage(
+        signUpData.session
+          ? 'Account created. You are now signed in.'
+          : 'Account created. Check your email to confirm your address.'
+      )
+    }
+
+    const updatedSession = await getSession()
+    await syncSession(updatedSession)
+  } catch {
+    isAuthSubmitting = false
+    setErrorMessage('Could not create account. Please check your details.')
+    render()
+  }
+}
+
+async function handleSignInSubmit(event) {
+  event.preventDefault()
+
+  const formData = new FormData(event.currentTarget)
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+  if (!email || !password) return
+
+  try {
+    const currentUser = getCurrentUser()
+    if (isAnonymousUser(currentUser)) savePendingAnonymousUserId(currentUser.id)
+
+    isAuthSubmitting = true
+    setErrorMessage('')
+    setAuthMessage('')
+    render()
+
+    await signInWithPassword(email, password)
+    setAuthMessage('Signed in successfully.')
+    const updatedSession = await getSession()
+    await syncSession(updatedSession)
+  } catch {
+    isAuthSubmitting = false
+    setErrorMessage('Could not sign in. Please verify your credentials.')
+    render()
+  }
+}
+
+async function handleMagicLinkSubmit(event) {
+  event.preventDefault()
+
+  const formData = new FormData(event.currentTarget)
+  const email = String(formData.get('email') ?? '').trim()
+  if (!email) return
+
+  try {
+    isAuthSubmitting = true
+    setErrorMessage('')
+    setAuthMessage('')
+    render()
+
+    const currentUser = getCurrentUser()
+    if (isAnonymousUser(currentUser)) savePendingAnonymousUserId(currentUser.id)
+    await signInWithMagicLink(email)
+    isAuthSubmitting = false
+    setAuthMessage('Magic link sent. Open your email to continue.')
+    render()
+  } catch {
+    isAuthSubmitting = false
+    setErrorMessage('Could not send magic link. Please try again.')
+    render()
+  }
+}
+
+async function handleSignOutClick() {
+  try {
+    isAuthSubmitting = true
+    setErrorMessage('')
+    setAuthMessage('')
+    render()
+
+    await signOutUser()
+    setAuthMessage('Signed out. You are now in a new guest session.')
+    await syncSession(null)
+  } catch {
+    isAuthSubmitting = false
+    setErrorMessage('Could not sign out. Please try again.')
+    render()
+  }
+}
+
+async function init() {
+  const {
+    data: { subscription },
+  } = onAuthStateChange((_event, session) => {
+    void syncSession(session)
+  })
+
+  try {
+    const session = await ensureSession()
+    await syncSession(session)
+  } catch {
+    setErrorMessage('Could not load todos. Check your Supabase configuration.')
+  }
+
+  window.addEventListener('beforeunload', () => {
+    subscription.unsubscribe()
+  })
 }
 
 void init()

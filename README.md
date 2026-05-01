@@ -10,7 +10,10 @@ A todo app built with Vite + Vanilla JavaScript and backed by Supabase.
 - View todos in separate To do and Completed sections
 - Clear all completed todos
 - Sync todos with Supabase
-- Anonymous per-browser sessions (no login UI)
+- Automatic anonymous session for first-time visitors
+- Account auth with email/password
+- Account auth with magic links
+- Automatic migration of guest todos into user accounts on login
 
 ## Tech
 
@@ -34,8 +37,8 @@ A todo app built with Vite + Vanilla JavaScript and backed by Supabase.
 
    Fill in:
 
-   - `VITE_SUPABASE_PROJECT_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 
 3. Start the development server:
 
@@ -68,8 +71,22 @@ pnpm db:push
 
 ## Notes
 
-- Todos are scoped to the browser's anonymous auth session.
-- Clearing browser storage creates a new anonymous user and a new empty todo list.
+- Every todo row belongs to a single Supabase auth user.
+- Guests are transparently signed in anonymously and can use the app immediately.
+- Signing in with an existing account merges the current guest todos into that account.
+- Signing up from a guest session links the current anonymous user to email/password.
+- Signing out creates a fresh anonymous session for continued usage.
+
+## Required Supabase Auth Settings
+
+- Enable the **Email** provider in Supabase Auth.
+- Keep **Confirm email** enabled or disabled based on your preference:
+  - Enabled: user receives confirmation before a normal password login.
+  - Disabled: user can sign in immediately after sign up.
+- Add your app URL(s) in Auth URL configuration:
+  - Local dev: `http://localhost:5173`
+  - Production: your deployed app origin
+- Add the same URLs to redirect allow-list for magic-link callbacks.
 
 ## Build For Production
 

@@ -51,3 +51,12 @@ export async function clearCompletedTodos() {
   const { error } = await supabase.from('todos').delete().eq('is_completed', true)
   if (error) throw error
 }
+
+export async function claimAnonymousTodos(anonymousUserId) {
+  const { data, error } = await supabase.rpc('claim_anonymous_todos', {
+    anonymous_user_id: anonymousUserId,
+  })
+
+  if (error) throw error
+  return data ?? 0
+}
