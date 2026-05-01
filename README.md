@@ -1,6 +1,6 @@
 # Todo List
 
-A simple todo app built with Vite and Vanilla JavaScript.
+A todo app built with Vite + Vanilla JavaScript and backed by Supabase.
 
 ## Features
 
@@ -9,13 +9,14 @@ A simple todo app built with Vite and Vanilla JavaScript.
 - Delete todos
 - View todos in separate To do and Completed sections
 - Clear all completed todos
-- Store todos in an in-memory JavaScript array (no backend)
+- Sync todos with Supabase
+- Anonymous per-browser sessions (no login UI)
 
 ## Tech
 
 - Vite
 - Vanilla JavaScript
-- No backend
+- Supabase (`@supabase/supabase-js`)
 
 ## Getting Started
 
@@ -25,13 +26,50 @@ A simple todo app built with Vite and Vanilla JavaScript.
    pnpm install
    ```
 
-2. Start the development server:
+2. Configure environment variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Fill in:
+
+   - `VITE_SUPABASE_PROJECT_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+3. Start the development server:
 
    ```bash
    pnpm dev
    ```
 
-3. Open the local URL shown in the terminal.
+4. Open the local URL shown in the terminal.
+
+## Supabase CLI Setup
+
+Run once for this project:
+
+```bash
+pnpm exec supabase login
+pnpm exec supabase link --project-ref qlpikytyzehkytbwdxfk
+pnpm exec supabase config push
+pnpm db:push
+```
+
+This project uses migrations from `supabase/migrations/`.
+
+For future schema updates:
+
+```bash
+pnpm db:new <migration_name>
+# edit the generated SQL migration
+pnpm db:push
+```
+
+## Notes
+
+- Todos are scoped to the browser's anonymous auth session.
+- Clearing browser storage creates a new anonymous user and a new empty todo list.
 
 ## Build For Production
 

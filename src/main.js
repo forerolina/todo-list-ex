@@ -1,4 +1,12 @@
 import './style.scss'
+import { ensureSession } from './supabase-client'
+import {
+  addTodo as addTodoRecord,
+  clearCompletedTodos as clearCompletedTodoRecords,
+  deleteTodo as deleteTodoRecord,
+  listTodos,
+  toggleTodo as toggleTodoRecord,
+} from './todos-api'
 
 const appElement = document.querySelector('#app')
 
@@ -10,39 +18,97 @@ function createTodoItem(text) {
   }
 }
 let todos = []
+let isLoading = true
+let errorMessage = ''
 
-function addTodo(text) {
-  const trimmedText = text.trim()
-  if (!trimmedText) return
-
-  todos = [createTodoItem(trimmedText), ...todos]
-  render()
+function setErrorMessage(message) {
+  errorMessage = message
 }
 
-function toggleTodo(todoId) {
+async function addTodo(text) {
+  const trimmedText = text.trim()
+  if (!trimmedText) return false
+
+  setErrorMessage('')
+  const optimisticTodo = createTodoItem(trimmedText)
+  const previousTodos = [...todos]
+  todos = [optimisticTodo, ...todos]
+  render()
+
+  try {
+    await addTodoRecord(trimmedText)
+    todos = await listTodos()
+    render()
+    return true
+  } catch {
+    todos = previousTodos
+    setErrorMessage('Could not add todo. Please try again.')
+    render()
+    return false
+  }
+}
+
+async function toggleTodo(todoId, isCompleted) {
+  const targetTodo = todos.find((todo) => todo.id === todoId)
+  if (!targetTodo) return
+
+  setErrorMessage('')
+  const previousTodos = [...todos]
   todos = todos.map((todo) => {
     if (todo.id !== todoId) return todo
-    return { ...todo, isCompleted: !todo.isCompleted }
+    return { ...todo, isCompleted }
   })
   render()
+
+  try {
+    await toggleTodoRecord(todoId, isCompleted)
+    todos = await listTodos()
+  } catch {
+    todos = previousTodos
+    setErrorMessage('Could not update todo. Please try again.')
+  }
+
+  render()
 }
 
-function deleteTodo(todoId) {
+async function deleteTodo(todoId) {
+  setErrorMessage('')
+  const previousTodos = [...todos]
   todos = todos.filter((todo) => todo.id !== todoId)
   render()
+
+  try {
+    await deleteTodoRecord(todoId)
+    todos = await listTodos()
+    render()
+  } catch {
+    todos = previousTodos
+    setErrorMessage('Could not delete todo. Please try again.')
+    render()
+  }
 }
 
-function clearCompletedTodos() {
+async function clearCompletedTodos() {
+  setErrorMessage('')
+  const previousTodos = [...todos]
   todos = todos.filter((todo) => !todo.isCompleted)
   render()
+
+  try {
+    await clearCompletedTodoRecords()
+  } catch {
+    todos = previousTodos
+    setErrorMessage('Could not clear completed todos. Please try again.')
+    render()
+  }
 }
 
-function handleAppClick(event) {
+async function handleAppClick(event) {
   const buttonElement = event.target.closest('button')
   if (!buttonElement) return
 
   if (buttonElement.dataset.action === 'clear-completed') {
-    clearCompletedTodos()
+    await clearCompletedTodos()
     return
   }
 
@@ -52,10 +118,10 @@ function handleAppClick(event) {
   const todoId = todoElement.dataset.id
   if (!todoId) return
 
-  if (buttonElement.dataset.action === 'delete') deleteTodo(todoId)
+  if (buttonElement.dataset.action === 'delete') await deleteTodo(todoId)
 }
 
-function handleAppChange(event) {
+async function handleAppChange(event) {
   const inputElement = event.target.closest('input[data-action="toggle"]')
   if (!inputElement) return
 
@@ -65,7 +131,7 @@ function handleAppChange(event) {
   const todoId = todoElement.dataset.id
   if (!todoId) return
 
-  toggleTodo(todoId)
+  await toggleTodo(todoId, inputElement.checked)
 }
 
 function createTodoMarkup(todo) {
@@ -101,6 +167,7 @@ function createTodoMarkup(todo) {
 function render() {
   const activeTodos = todos.filter((todo) => !todo.isCompleted)
   const completedTodos = todos.filter((todo) => todo.isCompleted)
+  const emptyMessage = isLoading ? 'Loading your todos...' : 'No active todos.'
 
   appElement.innerHTML = `
     <main class="todo-app cds--css-grid" aria-live="polite">
@@ -108,6 +175,11 @@ function render() {
         <h1 class="cds--productive-heading-04">Todo List</h1>
         <p class="cds--body-compact-01">Track your tasks and keep moving.</p>
       </header>
+      ${
+        errorMessage
+          ? `<p class="todo-inline-error" role="status">${errorMessage}</p>`
+          : ''
+      }
 
       <form class="todo-form cds--form" id="todo-form">
         <div class="cds--form-item">
@@ -143,7 +215,7 @@ function render() {
         ${
           activeTodos.length > 0
             ? `<ul class="todo-list">${activeTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
-            : `<p class="empty-state">No active todos.</p>`
+            : `<p class="empty-state">${emptyMessage}</p>`
         }
       </section>
 
@@ -172,9 +244,10 @@ function render() {
   const formElement = document.querySelector('#todo-form')
   const inputElement = document.querySelector('#todo-input')
 
-  formElement.addEventListener('submit', (event) => {
+  formElement.addEventListener('submit', async (event) => {
     event.preventDefault()
-    addTodo(inputElement.value)
+    const hasAddedTodo = await addTodo(inputElement.value)
+    if (!hasAddedTodo) return
     inputElement.value = ''
     inputElement.focus()
   })
@@ -183,3 +256,18 @@ function render() {
 appElement.addEventListener('click', handleAppClick)
 appElement.addEventListener('change', handleAppChange)
 render()
+
+async function init() {
+  try {
+    await ensureSession()
+    todos = await listTodos()
+    setErrorMessage('')
+  } catch {
+    setErrorMessage('Could not load todos. Check your Supabase configuration.')
+  } finally {
+    isLoading = false
+    render()
+  }
+}
+
+void init()

@@ -43,6 +43,13 @@ body {
   color: var(--cds-text-secondary);
 }
 
+.todo-inline-error {
+  margin: 0;
+  padding: 0.75rem;
+  color: var(--cds-text-on-color);
+  background: var(--cds-support-error);
+}
+
 .todo-form {
   display: grid;
   gap: 0.5rem;
