@@ -110,6 +110,29 @@ body.is-modal-open {
   gap: 0.5rem;
 }
 
+.auth-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.auth-form-footer {
+  margin: 0;
+}
+
+.auth-link-button {
+  padding-inline: 0;
+  min-block-size: auto;
+}
+
+.auth-modal-lead {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
 .auth-form {
   margin: 0;
 }
@@ -266,6 +289,12 @@ body.is-modal-open {
   }
 
   .auth-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-panel-actions {
     width: 100%;
     flex-direction: column;
     align-items: stretch;

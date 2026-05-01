@@ -2,11 +2,14 @@ import './style.scss'
 import {
   ensureSession,
   getSession,
+  hasAuthCallbackInUrl,
   linkAnonymousToEmailPassword,
   onAuthStateChange,
+  requestPasswordReset,
   signInWithPassword,
   signOut as signOutUser,
   signUpWithEmail,
+  updateAccountPassword,
 } from './supabase-client'
 import {
   addTodo as addTodoRecord,
@@ -67,6 +70,15 @@ function readPendingAnonymousUserId() {
 
 function clearPendingAnonymousUserId() {
   window.localStorage.removeItem(pendingAnonymousUserKey)
+}
+
+function clearAuthHashFromUrl() {
+  if (!window.location.hash) return
+  window.history.replaceState(
+    null,
+    '',
+    `${window.location.pathname}${window.location.search}`
+  )
 }
 
 function isAnonymousUser(user) {
@@ -222,8 +234,21 @@ function render() {
   const showPasswordForms = !isEmailAccountUser
   const isSignInModal = authModalMode === 'sign-in'
   const isSignUpModal = authModalMode === 'sign-up'
-  const isAuthModalOpen = isSignInModal || isSignUpModal
-  const authModalTitle = isSignInModal ? 'Login' : 'Sign up'
+  const isForgotPasswordModal = authModalMode === 'forgot-password'
+  const isChangePasswordModal = authModalMode === 'change-password'
+  const isResetPasswordModal = authModalMode === 'reset-password'
+  const isAuthModalOpen = Boolean(authModalMode)
+  const authModalTitle = isSignInModal
+    ? 'Login'
+    : isSignUpModal
+      ? 'Sign up'
+      : isForgotPasswordModal
+        ? 'Reset password'
+        : isChangePasswordModal
+          ? 'Change password'
+          : isResetPasswordModal
+            ? 'Set new password'
+            : ''
   const authSubmitLabel = isAuthSubmitting ? 'Working...' : 'Continue'
   const authDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
   const signOutDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
@@ -270,14 +295,25 @@ function render() {
         <div class="auth-panel-header">
           ${
             isEmailAccountUser
-              ? `<button
-            type="button"
-            class="secondary-button cds--btn cds--btn--tertiary"
-            id="sign-out-button"
-            ${signOutDisabledAttribute}
-          >
-            Sign out
-          </button>`
+              ? `<div class="auth-panel-actions">
+            <button
+              type="button"
+              class="secondary-button cds--btn cds--btn--tertiary"
+              id="change-password-button"
+              data-action="open-change-password-modal"
+              ${signOutDisabledAttribute}
+            >
+              Change password
+            </button>
+            <button
+              type="button"
+              class="secondary-button cds--btn cds--btn--tertiary"
+              id="sign-out-button"
+              ${signOutDisabledAttribute}
+            >
+              Sign out
+            </button>
+          </div>`
               : ''
           }
         </div>
@@ -317,10 +353,19 @@ function render() {
                 <input class="cds--text-input" id="sign-in-password" name="password" type="password" minlength="8" required ${authDisabledAttribute} />
               </div>
               <button class="cds--btn cds--btn--primary" type="submit" ${authDisabledAttribute}>${authSubmitLabel}</button>
+              <p class="auth-form-footer">
+                <button type="button" class="auth-link-button cds--btn cds--btn--ghost" data-action="open-forgot-password-modal" ${authDisabledAttribute}>
+                  Forgot password?
+                </button>
+              </p>
             </div>
           </form>
           `
-              : `
+              : ''
+          }
+          ${
+            isSignUpModal
+              ? `
           <form class="cds--form auth-form auth-modal-form" id="sign-up-form">
             <div class="auth-form-column">
               <div class="cds--form-item">
@@ -335,6 +380,67 @@ function render() {
             </div>
           </form>
           `
+              : ''
+          }
+          ${
+            isForgotPasswordModal
+              ? `
+          <form class="cds--form auth-form auth-modal-form" id="forgot-password-form">
+            <div class="auth-form-column">
+              <p class="auth-modal-lead">We will email you a link to choose a new password.</p>
+              <div class="cds--form-item">
+                <label class="cds--label" for="forgot-password-email">Email</label>
+                <input class="cds--text-input" id="forgot-password-email" name="email" type="email" required ${authDisabledAttribute} />
+              </div>
+              <button class="cds--btn cds--btn--primary" type="submit" ${authDisabledAttribute}>Send reset link</button>
+              <p class="auth-form-footer">
+                <button type="button" class="auth-link-button cds--btn cds--btn--ghost" data-action="open-sign-in-modal" ${authDisabledAttribute}>
+                  Back to login
+                </button>
+              </p>
+            </div>
+          </form>
+          `
+              : ''
+          }
+          ${
+            isChangePasswordModal
+              ? `
+          <form class="cds--form auth-form auth-modal-form" id="change-password-form">
+            <div class="auth-form-column">
+              <div class="cds--form-item">
+                <label class="cds--label" for="change-password-new">New password</label>
+                <input class="cds--text-input" id="change-password-new" name="password" type="password" minlength="8" required autocomplete="new-password" ${authDisabledAttribute} />
+              </div>
+              <div class="cds--form-item">
+                <label class="cds--label" for="change-password-confirm">Confirm new password</label>
+                <input class="cds--text-input" id="change-password-confirm" name="password-confirm" type="password" minlength="8" required autocomplete="new-password" ${authDisabledAttribute} />
+              </div>
+              <button class="cds--btn cds--btn--primary" type="submit" ${authDisabledAttribute}>Update password</button>
+            </div>
+          </form>
+          `
+              : ''
+          }
+          ${
+            isResetPasswordModal
+              ? `
+          <form class="cds--form auth-form auth-modal-form" id="reset-password-form">
+            <div class="auth-form-column">
+              <p class="auth-modal-lead">Choose a new password for your account.</p>
+              <div class="cds--form-item">
+                <label class="cds--label" for="reset-password-new">New password</label>
+                <input class="cds--text-input" id="reset-password-new" name="password" type="password" minlength="8" required autocomplete="new-password" ${authDisabledAttribute} />
+              </div>
+              <div class="cds--form-item">
+                <label class="cds--label" for="reset-password-confirm">Confirm new password</label>
+                <input class="cds--text-input" id="reset-password-confirm" name="password-confirm" type="password" minlength="8" required autocomplete="new-password" ${authDisabledAttribute} />
+              </div>
+              <button class="cds--btn cds--btn--primary" type="submit" ${authDisabledAttribute}>Save new password</button>
+            </div>
+          </form>
+          `
+              : ''
           }
         </section>
       </div>
@@ -411,6 +517,9 @@ function render() {
   const inputElement = document.querySelector('#todo-input')
   const signUpFormElement = document.querySelector('#sign-up-form')
   const signInFormElement = document.querySelector('#sign-in-form')
+  const forgotPasswordFormElement = document.querySelector('#forgot-password-form')
+  const changePasswordFormElement = document.querySelector('#change-password-form')
+  const resetPasswordFormElement = document.querySelector('#reset-password-form')
   const signOutButtonElement = document.querySelector('#sign-out-button')
 
   formElement.addEventListener('submit', async (event) => {
@@ -423,6 +532,9 @@ function render() {
 
   signUpFormElement?.addEventListener('submit', handleSignUpSubmit)
   signInFormElement?.addEventListener('submit', handleSignInSubmit)
+  forgotPasswordFormElement?.addEventListener('submit', handleForgotPasswordSubmit)
+  changePasswordFormElement?.addEventListener('submit', handleChangePasswordSubmit)
+  resetPasswordFormElement?.addEventListener('submit', handleResetPasswordSubmit)
   signOutButtonElement?.addEventListener('click', handleSignOutClick)
 }
 
@@ -436,8 +548,21 @@ async function syncSession(session) {
 
   try {
     let activeSession = session
-    if (!activeSession) activeSession = await ensureSession()
+    if (!activeSession && !hasAuthCallbackInUrl()) {
+      activeSession = await ensureSession()
+    }
     if (syncVersion !== authSyncVersion) return
+
+    if (!activeSession) {
+      currentSession = null
+      todos = []
+      if (syncVersion !== authSyncVersion) return
+      setErrorMessage('')
+      isLoading = false
+      isAuthSubmitting = false
+      render()
+      return
+    }
 
     currentSession = activeSession
     const previousUser = previousSession?.user
@@ -542,6 +667,96 @@ async function handleSignInSubmit(event) {
   }
 }
 
+async function handleForgotPasswordSubmit(event) {
+  event.preventDefault()
+
+  const formData = new FormData(event.currentTarget)
+  const email = String(formData.get('email') ?? '').trim()
+  if (!email) return
+
+  try {
+    isAuthSubmitting = true
+    setErrorMessage('')
+    setAuthMessage('')
+    render()
+
+    await requestPasswordReset(email)
+    setAuthMessage(
+      'If an account exists for that email, you will receive password reset instructions shortly.'
+    )
+    authModalMode = null
+    isAuthSubmitting = false
+    render()
+  } catch {
+    isAuthSubmitting = false
+    setErrorMessage('Could not send reset email. Please try again.')
+    render()
+  }
+}
+
+async function handleChangePasswordSubmit(event) {
+  event.preventDefault()
+
+  const formData = new FormData(event.currentTarget)
+  const password = String(formData.get('password') ?? '')
+  const confirm = String(formData.get('password-confirm') ?? '')
+  if (!password || password.length < 8) return
+  if (password !== confirm) {
+    setErrorMessage('New passwords do not match.')
+    render()
+    return
+  }
+
+  try {
+    isAuthSubmitting = true
+    setErrorMessage('')
+    setAuthMessage('')
+    render()
+
+    await updateAccountPassword(password)
+    setAuthMessage('Your password was updated.')
+    authModalMode = null
+    const updatedSession = await getSession()
+    await syncSession(updatedSession)
+  } catch {
+    isAuthSubmitting = false
+    setErrorMessage('Could not update password. Please try again.')
+    render()
+  }
+}
+
+async function handleResetPasswordSubmit(event) {
+  event.preventDefault()
+
+  const formData = new FormData(event.currentTarget)
+  const password = String(formData.get('password') ?? '')
+  const confirm = String(formData.get('password-confirm') ?? '')
+  if (!password || password.length < 8) return
+  if (password !== confirm) {
+    setErrorMessage('New passwords do not match.')
+    render()
+    return
+  }
+
+  try {
+    isAuthSubmitting = true
+    setErrorMessage('')
+    setAuthMessage('')
+    render()
+
+    await updateAccountPassword(password)
+    clearAuthHashFromUrl()
+    setAuthMessage('Your password was reset. You are signed in.')
+    authModalMode = null
+    const updatedSession = await getSession()
+    await syncSession(updatedSession)
+  } catch {
+    isAuthSubmitting = false
+    setErrorMessage('Could not reset password. Please try again.')
+    render()
+  }
+}
+
 async function handleSignOutClick() {
   try {
     isAuthSubmitting = true
@@ -577,6 +792,18 @@ function handleAuthModalClick(event) {
     return
   }
 
+  if (action === 'open-forgot-password-modal') {
+    authModalMode = 'forgot-password'
+    render()
+    return
+  }
+
+  if (action === 'open-change-password-modal') {
+    authModalMode = 'change-password'
+    render()
+    return
+  }
+
   if (action === 'close-auth-modal') {
     const isBackdropClick = targetElement.classList.contains('auth-modal-overlay')
     if (isBackdropClick && event.target !== targetElement) return
@@ -589,15 +816,25 @@ function handleAuthModalClick(event) {
 async function init() {
   const {
     data: { subscription },
-  } = onAuthStateChange((_event, session) => {
+  } = onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') authModalMode = 'reset-password'
     void syncSession(session)
   })
 
   try {
-    const session = await ensureSession()
+    let session = await getSession()
+    if (!session && !hasAuthCallbackInUrl()) session = await ensureSession()
     await syncSession(session)
+
+    if (hasAuthCallbackInUrl()) {
+      const hashParams = new URLSearchParams(window.location.hash.slice(1))
+      if (hashParams.get('type') === 'recovery') authModalMode = 'reset-password'
+      render()
+    }
   } catch {
     setErrorMessage('Could not load todos. Check your Supabase configuration.')
+    isLoading = false
+    render()
   }
 
   window.addEventListener('beforeunload', () => {

@@ -12,6 +12,7 @@ A todo app built with Vite + Vanilla JavaScript and backed by Supabase.
 - Sync todos with Supabase
 - Automatic anonymous session for first-time visitors
 - Account auth with email/password
+- Forgot-password flow (email reset link) and change password while signed in
 - Account auth with magic links
 - Automatic migration of guest todos into user accounts on login
 
@@ -86,7 +87,7 @@ pnpm db:push
 - Add your app URL(s) in Auth URL configuration:
   - Local dev: `http://localhost:5173`
   - Production: your deployed app origin
-- Add the same URLs to redirect allow-list for magic-link callbacks.
+- Add the same URLs to the redirect allow-list for magic-link and **password reset** emails (`resetPasswordForEmail` redirects back to your app origin).
 
 ## Build For Production
 

@@ -67,6 +67,35 @@ export async function signOut() {
   if (error) throw error
 }
 
+/** True when the URL likely contains tokens from an email link (recovery, magic link, PKCE). */
+export function hasAuthCallbackInUrl() {
+  const { hash, search } = window.location
+  const h = hash.slice(1)
+  const paramsFromHash = new URLSearchParams(h)
+  if (paramsFromHash.get('type') === 'recovery') return true
+  if (hash.includes('access_token')) return true
+  if (search.includes('code=')) return true
+  return false
+}
+
+export async function requestPasswordReset(email) {
+  const redirectTo = window.location.origin
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  })
+
+  if (error) throw error
+}
+
+export async function updateAccountPassword(newPassword) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  })
+
+  if (error) throw error
+  return data
+}
+
 export async function linkAnonymousToEmailPassword(email, password) {
   const session = await getSession()
   const currentUser = session?.user
