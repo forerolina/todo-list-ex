@@ -583,8 +583,13 @@ async function syncSession(session) {
         await claimAnonymousTodos(sourceAnonymousUserId)
         if (syncVersion !== authSyncVersion) return
         setAuthMessage('Signed in. Your guest todos were moved to this account.')
-      } catch {
+      } catch (error) {
         if (syncVersion !== authSyncVersion) return
+        console.error('claim_anonymous_todos failed', {
+          sourceAnonymousUserId,
+          code: error?.code ?? null,
+          message: error?.message ?? 'Unknown claim error',
+        })
         setAuthMessage(
           'Signed in successfully. We could not move guest todos from your previous session.'
         )
