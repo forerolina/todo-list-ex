@@ -94,7 +94,6 @@ function createTodoMarkup(todo) {
 function render() {
   const activeTodos = todos.filter((todo) => !todo.isCompleted)
   const completedTodos = todos.filter((todo) => todo.isCompleted)
-  const hasTodos = todos.length > 0
 
   appElement.innerHTML = `
     <main class="todo-app" aria-live="polite">
@@ -118,35 +117,33 @@ function render() {
         </div>
       </form>
 
-      ${
-        hasTodos
-          ? `
-            <section class="todo-list-section" aria-label="Active todos">
-              <h2 class="todo-list-title">To do</h2>
-              ${
-                activeTodos.length > 0
-                  ? `<ul class="todo-list">${activeTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
-                  : `<p class="empty-state">No active todos.</p>`
-              }
-            </section>
-            ${
-              completedTodos.length > 0
-                ? `
-                  <section class="todo-list-section" aria-label="Completed todos">
-                    <div class="todo-list-section-header">
-                      <h2 class="todo-list-title">Completed</h2>
-                      <button type="button" class="secondary-button" data-action="clear-completed">
-                        Clear completed
-                      </button>
-                    </div>
-                    <ul class="todo-list">${completedTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>
-                  </section>
-                `
-                : ''
-            }
-          `
-          : `<p class="empty-state">No todos yet. Add one to get started.</p>`
-      }
+      <section class="todo-list-section" aria-label="Active todos">
+        <h2 class="todo-list-title">To do</h2>
+        ${
+          activeTodos.length > 0
+            ? `<ul class="todo-list">${activeTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
+            : `<p class="empty-state">No active todos.</p>`
+        }
+      </section>
+
+      <section class="todo-list-section" aria-label="Completed todos">
+        <div class="todo-list-section-header">
+          <h2 class="todo-list-title">Completed</h2>
+          <button
+            type="button"
+            class="secondary-button"
+            data-action="clear-completed"
+            ${completedTodos.length === 0 ? 'disabled' : ''}
+          >
+            Clear
+          </button>
+        </div>
+        ${
+          completedTodos.length > 0
+            ? `<ul class="todo-list">${completedTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
+            : `<p class="empty-state">No completed todos yet.</p>`
+        }
+      </section>
     </main>
   `
 

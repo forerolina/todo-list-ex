@@ -141,6 +141,7 @@
   /* --- Motion --- */
   --motion-duration-fast: 0.2s;
   --motion-ease-standard: ease;
+  --state-disabled-opacity: 0.5;
 
   /* --- Semantic aliases (todo UI / shorter names) --- */
   --bg: var(--color-background);
@@ -262,10 +263,11 @@ body {
   display: flex;
   gap: var(--space-sm);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .todo-form-row input {
-  flex: 1;
+  flex: 1 1 16rem;
   min-width: 0;
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-default);
@@ -343,6 +345,11 @@ body {
 .secondary-button:hover {
   background: var(--color-surface-container);
   border-color: var(--color-outline);
+}
+
+.secondary-button:disabled {
+  opacity: var(--state-disabled-opacity);
+  cursor: not-allowed;
 }
 
 .todo-item {
@@ -426,18 +433,4 @@ button:focus-visible,
 input:focus-visible {
   outline: var(--focus-outline-width) solid var(--primary);
   outline-offset: var(--focus-outline-offset);
-}
-
-@media (max-width: 640px) {
-  .todo-app {
-    padding: var(--space-md);
-  }
-
-  .todo-form-row {
-    flex-direction: column;
-  }
-
-  .todo-form-row button {
-    width: var(--size-full);
-  }
 }
