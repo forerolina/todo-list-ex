@@ -38,6 +38,25 @@ body {
   margin: 0;
 }
 
+.todo-header-top-row {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.todo-header-title-group {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.todo-auth-controls {
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+  align-self: end;
+}
+
 .todo-header p {
   margin: 0.25rem 0 0;
   color: var(--cds-text-secondary);
@@ -58,7 +77,18 @@ body {
 }
 
 .todo-account-status {
-  margin-top: 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cds-text-secondary);
+  background: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 999px;
+  user-select: none;
+  pointer-events: none;
 }
 
 .auth-panel {
@@ -80,11 +110,47 @@ body {
   margin: 0;
 }
 
-.auth-form-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.auth-actions {
+  display: flex;
   gap: 0.5rem;
-  align-items: end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.auth-form-column {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--cds-overlay) 70%, transparent);
+  z-index: 1000;
+}
+
+.auth-modal {
+  width: min(100%, 28rem);
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+}
+
+.auth-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.auth-modal-form .cds--btn {
+  justify-content: center;
 }
 
 .todo-form {
@@ -180,8 +246,24 @@ body {
 }
 
 @media (max-width: 40rem) {
-  .auth-form-row {
-    grid-template-columns: 1fr;
+  .todo-header-top-row {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .todo-header-title-group {
+    width: 100%;
+  }
+
+  .todo-auth-controls {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .auth-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .todo-form-row {

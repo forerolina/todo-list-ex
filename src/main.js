@@ -4,7 +4,6 @@ import {
   getSession,
   linkAnonymousToEmailPassword,
   onAuthStateChange,
-  signInWithMagicLink,
   signInWithPassword,
   signOut as signOutUser,
   signUpWithEmail,
@@ -34,6 +33,7 @@ let authMessage = ''
 let currentSession = null
 let isAuthSubmitting = false
 let authSyncVersion = 0
+let authModalMode = null
 const pendingAnonymousUserKey = 'todo-list:pending-anonymous-user-id'
 
 function setErrorMessage(message) {
@@ -75,8 +75,7 @@ function isAnonymousUser(user) {
 
 function getAccountLabel() {
   const currentUser = getCurrentUser()
-  if (!currentUser) return 'Signed out'
-  if (isAnonymousUser(currentUser)) return 'Guest session'
+  if (!currentUser || isAnonymousUser(currentUser)) return 'Guest session'
   return `Signed in as ${escapeHtml(currentUser.email ?? 'account user')}`
 }
 
@@ -219,7 +218,11 @@ function render() {
   const completedTodos = todos.filter((todo) => todo.isCompleted)
   const emptyMessage = isLoading ? 'Loading your todos...' : 'No active todos.'
   const currentUser = getCurrentUser()
-  const showPasswordForms = isAnonymousUser(currentUser)
+  const isEmailAccountUser = Boolean(currentUser && !isAnonymousUser(currentUser))
+  const showPasswordForms = !isEmailAccountUser
+  const isSignInModal = authModalMode === 'sign-in'
+  const isSignUpModal = authModalMode === 'sign-up'
+  const authModalTitle = isSignInModal ? 'Login' : 'Sign up'
   const authSubmitLabel = isAuthSubmitting ? 'Working...' : 'Continue'
   const authDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
   const signOutDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
@@ -227,15 +230,44 @@ function render() {
   appElement.innerHTML = `
     <main class="todo-app cds--css-grid" aria-live="polite">
       <header class="todo-header">
-        <h1 class="cds--productive-heading-04">Todo List</h1>
-        <p class="cds--body-compact-01">Track your tasks and keep moving.</p>
-        <p class="todo-account-status cds--body-compact-01">${getAccountLabel()}</p>
+        <div class="todo-header-top-row">
+          <div class="todo-header-title-group">
+            <h1 class="cds--productive-heading-04">Todo List</h1>
+            <p class="cds--body-compact-01">Track your tasks and keep moving.</p>
+          </div>
+          <div class="todo-auth-controls">
+            <p class="todo-account-status" aria-label="Current account status">${getAccountLabel()}</p>
+            ${
+              showPasswordForms
+                ? `
+          <div class="auth-actions">
+            <button
+              type="button"
+              class="cds--btn cds--btn--primary"
+              data-action="open-sign-in-modal"
+              ${authDisabledAttribute}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              class="cds--btn cds--btn--secondary"
+              data-action="open-sign-up-modal"
+              ${authDisabledAttribute}
+            >
+              Sign up
+            </button>
+          </div>
+          `
+                : ''
+            }
+          </div>
+        </div>
       </header>
       <section class="auth-panel" aria-label="Authentication">
         <div class="auth-panel-header">
-          <h2 class="todo-list-title">Account</h2>
           ${
-            currentUser
+            isEmailAccountUser
               ? `<button
             type="button"
             class="secondary-button cds--btn cds--btn--tertiary"
@@ -252,48 +284,61 @@ function render() {
             ? `<p class="todo-inline-info" role="status">${escapeHtml(authMessage)}</p>`
             : ''
         }
-        ${
-          showPasswordForms
-            ? `
-        <form class="cds--form auth-form" id="sign-up-form">
-          <div class="auth-form-row">
-            <div class="cds--form-item">
-              <label class="cds--label" for="sign-up-email">Email</label>
-              <input class="cds--text-input" id="sign-up-email" name="email" type="email" required ${authDisabledAttribute} />
-            </div>
-            <div class="cds--form-item">
-              <label class="cds--label" for="sign-up-password">Password</label>
-              <input class="cds--text-input" id="sign-up-password" name="password" type="password" minlength="8" required ${authDisabledAttribute} />
-            </div>
-            <button class="cds--btn cds--btn--secondary" type="submit" ${authDisabledAttribute}>Create account</button>
-          </div>
-        </form>
-        <form class="cds--form auth-form" id="sign-in-form">
-          <div class="auth-form-row">
-            <div class="cds--form-item">
-              <label class="cds--label" for="sign-in-email">Email</label>
-              <input class="cds--text-input" id="sign-in-email" name="email" type="email" required ${authDisabledAttribute} />
-            </div>
-            <div class="cds--form-item">
-              <label class="cds--label" for="sign-in-password">Password</label>
-              <input class="cds--text-input" id="sign-in-password" name="password" type="password" minlength="8" required ${authDisabledAttribute} />
-            </div>
-            <button class="cds--btn cds--btn--secondary" type="submit" ${authDisabledAttribute}>${authSubmitLabel}</button>
-          </div>
-        </form>
-      `
-            : ''
-        }
-        <form class="cds--form auth-form" id="magic-link-form">
-          <div class="auth-form-row">
-            <div class="cds--form-item">
-              <label class="cds--label" for="magic-link-email">Email for magic link</label>
-              <input class="cds--text-input" id="magic-link-email" name="email" type="email" required ${authDisabledAttribute} />
-            </div>
-            <button class="cds--btn cds--btn--secondary" type="submit" ${authDisabledAttribute}>Send magic link</button>
-          </div>
-        </form>
       </section>
+      ${
+        isSignInModal || isSignUpModal
+          ? `
+      <div class="auth-modal-overlay" data-action="close-auth-modal">
+        <section class="auth-modal" role="dialog" aria-modal="true" aria-label="${authModalTitle}">
+          <header class="auth-modal-header">
+            <h2 class="todo-list-title">${authModalTitle}</h2>
+            <button
+              type="button"
+              class="secondary-button cds--btn cds--btn--ghost"
+              data-action="close-auth-modal"
+              ${authDisabledAttribute}
+            >
+              Close
+            </button>
+          </header>
+          ${
+            isSignInModal
+              ? `
+          <form class="cds--form auth-form auth-modal-form" id="sign-in-form">
+            <div class="auth-form-column">
+              <div class="cds--form-item">
+                <label class="cds--label" for="sign-in-email">Email</label>
+                <input class="cds--text-input" id="sign-in-email" name="email" type="email" required ${authDisabledAttribute} />
+              </div>
+              <div class="cds--form-item">
+                <label class="cds--label" for="sign-in-password">Password</label>
+                <input class="cds--text-input" id="sign-in-password" name="password" type="password" minlength="8" required ${authDisabledAttribute} />
+              </div>
+              <button class="cds--btn cds--btn--primary" type="submit" ${authDisabledAttribute}>${authSubmitLabel}</button>
+            </div>
+          </form>
+          `
+              : `
+          <form class="cds--form auth-form auth-modal-form" id="sign-up-form">
+            <div class="auth-form-column">
+              <div class="cds--form-item">
+                <label class="cds--label" for="sign-up-email">Email</label>
+                <input class="cds--text-input" id="sign-up-email" name="email" type="email" required ${authDisabledAttribute} />
+              </div>
+              <div class="cds--form-item">
+                <label class="cds--label" for="sign-up-password">Password</label>
+                <input class="cds--text-input" id="sign-up-password" name="password" type="password" minlength="8" required ${authDisabledAttribute} />
+              </div>
+              <button class="cds--btn cds--btn--secondary" type="submit" ${authDisabledAttribute}>Create account</button>
+            </div>
+          </form>
+          `
+          }
+        </section>
+      </div>
+      `
+          : ''
+      }
       ${
         errorMessage
           ? `<p class="todo-inline-error" role="status">${errorMessage}</p>`
@@ -364,7 +409,6 @@ function render() {
   const inputElement = document.querySelector('#todo-input')
   const signUpFormElement = document.querySelector('#sign-up-form')
   const signInFormElement = document.querySelector('#sign-in-form')
-  const magicLinkFormElement = document.querySelector('#magic-link-form')
   const signOutButtonElement = document.querySelector('#sign-out-button')
 
   formElement.addEventListener('submit', async (event) => {
@@ -377,7 +421,6 @@ function render() {
 
   signUpFormElement?.addEventListener('submit', handleSignUpSubmit)
   signInFormElement?.addEventListener('submit', handleSignInSubmit)
-  magicLinkFormElement?.addEventListener('submit', handleMagicLinkSubmit)
   signOutButtonElement?.addEventListener('click', handleSignOutClick)
 }
 
@@ -458,6 +501,7 @@ async function handleSignUpSubmit(event) {
       )
     }
 
+    authModalMode = null
     const updatedSession = await getSession()
     await syncSession(updatedSession)
   } catch {
@@ -486,37 +530,12 @@ async function handleSignInSubmit(event) {
 
     await signInWithPassword(email, password)
     setAuthMessage('Signed in successfully.')
+    authModalMode = null
     const updatedSession = await getSession()
     await syncSession(updatedSession)
   } catch {
     isAuthSubmitting = false
     setErrorMessage('Could not sign in. Please verify your credentials.')
-    render()
-  }
-}
-
-async function handleMagicLinkSubmit(event) {
-  event.preventDefault()
-
-  const formData = new FormData(event.currentTarget)
-  const email = String(formData.get('email') ?? '').trim()
-  if (!email) return
-
-  try {
-    isAuthSubmitting = true
-    setErrorMessage('')
-    setAuthMessage('')
-    render()
-
-    const currentUser = getCurrentUser()
-    if (isAnonymousUser(currentUser)) savePendingAnonymousUserId(currentUser.id)
-    await signInWithMagicLink(email)
-    isAuthSubmitting = false
-    setAuthMessage('Magic link sent. Open your email to continue.')
-    render()
-  } catch {
-    isAuthSubmitting = false
-    setErrorMessage('Could not send magic link. Please try again.')
     render()
   }
 }
@@ -534,6 +553,30 @@ async function handleSignOutClick() {
   } catch {
     isAuthSubmitting = false
     setErrorMessage('Could not sign out. Please try again.')
+    render()
+  }
+}
+
+function handleAuthModalClick(event) {
+  const targetElement = event.target.closest('[data-action]')
+  if (!targetElement) return
+
+  const { action } = targetElement.dataset
+
+  if (action === 'open-sign-in-modal') {
+    authModalMode = 'sign-in'
+    render()
+    return
+  }
+
+  if (action === 'open-sign-up-modal') {
+    authModalMode = 'sign-up'
+    render()
+    return
+  }
+
+  if (action === 'close-auth-modal') {
+    authModalMode = null
     render()
   }
 }
@@ -556,5 +599,7 @@ async function init() {
     subscription.unsubscribe()
   })
 }
+
+appElement.addEventListener('click', handleAuthModalClick)
 
 void init()
