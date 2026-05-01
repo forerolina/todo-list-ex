@@ -1,4 +1,4 @@
-import './style.css'
+import './style.scss'
 
 const appElement = document.querySelector('#app')
 
@@ -52,12 +52,20 @@ function handleAppClick(event) {
   const todoId = todoElement.dataset.id
   if (!todoId) return
 
-  if (buttonElement.dataset.action === 'toggle') {
-    toggleTodo(todoId)
-    return
-  }
-
   if (buttonElement.dataset.action === 'delete') deleteTodo(todoId)
+}
+
+function handleAppChange(event) {
+  const inputElement = event.target.closest('input[data-action="toggle"]')
+  if (!inputElement) return
+
+  const todoElement = inputElement.closest('.todo-item')
+  if (!todoElement) return
+
+  const todoId = todoElement.dataset.id
+  if (!todoId) return
+
+  toggleTodo(todoId)
 }
 
 function createTodoMarkup(todo) {
@@ -70,22 +78,21 @@ function createTodoMarkup(todo) {
 
   return `
     <li class="todo-item ${todo.isCompleted ? 'is-completed' : ''}" data-id="${todo.id}">
-      <button
-        type="button"
-        class="toggle-button"
+      <input
+        type="checkbox"
+        class="toggle-checkbox"
         data-action="toggle"
         aria-label="${todo.isCompleted ? 'Mark as incomplete' : 'Mark as complete'}"
-      >
-        ${todo.isCompleted ? '✓' : ''}
-      </button>
+        ${todo.isCompleted ? 'checked' : ''}
+      />
       <p class="todo-text">${escapedText}</p>
       <button
         type="button"
-        class="delete-button"
+        class="delete-button cds--btn cds--btn--ghost"
         data-action="delete"
         aria-label="Delete todo"
       >
-        X
+        Delete
       </button>
     </li>
   `
@@ -96,29 +103,43 @@ function render() {
   const completedTodos = todos.filter((todo) => todo.isCompleted)
 
   appElement.innerHTML = `
-    <main class="todo-app" aria-live="polite">
+    <main class="todo-app cds--css-grid" aria-live="polite">
       <header class="todo-header">
-        <h1>Todo List</h1>
-        <p>Track your tasks and keep moving.</p>
+        <h1 class="cds--productive-heading-04">Todo List</h1>
+        <p class="cds--body-compact-01">Track your tasks and keep moving.</p>
       </header>
 
-      <form class="todo-form" id="todo-form">
-        <label for="todo-input">Add a task</label>
+      <form class="todo-form cds--form" id="todo-form">
+        <div class="cds--form-item">
+          <label class="cds--label" for="todo-input">Add a task</label>
+        </div>
         <div class="todo-form-row">
-          <input
-            id="todo-input"
-            name="todo-input"
-            type="text"
-            placeholder="Buy groceries"
-            autocomplete="off"
-            required
-          />
-          <button type="submit">Add</button>
+          <div class="cds--form-item todo-form-input-item">
+            <input
+              class="cds--text-input"
+              id="todo-input"
+              name="todo-input"
+              type="text"
+              placeholder="Buy groceries"
+              autocomplete="off"
+              required
+            />
+          </div>
+          <button
+            class="cds--btn cds--btn--primary cds--btn--icon-only todo-add-button"
+            type="submit"
+            aria-label="Add task"
+          >
+            <span class="cds--btn__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                <path d="M17 15V8h-2v7H8v2h7v7h2v-7h7v-2z" />
+              </svg>
+            </span>
+          </button>
         </div>
       </form>
 
       <section class="todo-list-section" aria-label="Active todos">
-        <h2 class="todo-list-title">To do</h2>
         ${
           activeTodos.length > 0
             ? `<ul class="todo-list">${activeTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
@@ -126,24 +147,25 @@ function render() {
         }
       </section>
 
+      ${
+        completedTodos.length > 0
+          ? `
       <section class="todo-list-section" aria-label="Completed todos">
         <div class="todo-list-section-header">
           <h2 class="todo-list-title">Completed</h2>
           <button
             type="button"
-            class="secondary-button"
+            class="secondary-button cds--btn cds--btn--tertiary"
             data-action="clear-completed"
-            ${completedTodos.length === 0 ? 'disabled' : ''}
           >
-            Clear
+            Clear all
           </button>
         </div>
-        ${
-          completedTodos.length > 0
-            ? `<ul class="todo-list">${completedTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>`
-            : `<p class="empty-state">No completed todos yet.</p>`
-        }
+        <ul class="todo-list">${completedTodos.map((todo) => createTodoMarkup(todo)).join('')}</ul>
       </section>
+      `
+          : ''
+      }
     </main>
   `
 
@@ -159,4 +181,5 @@ function render() {
 }
 
 appElement.addEventListener('click', handleAppClick)
+appElement.addEventListener('change', handleAppChange)
 render()

@@ -1,0 +1,142 @@
+@use '@carbon/styles/scss/reset';
+@use '@carbon/styles/scss/type';
+@use '@carbon/styles/scss/components/button';
+@use '@carbon/styles/scss/components/text-input';
+@use '@carbon/styles/scss/components/form';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.todo-app {
+  width: min(100%, 42rem);
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.todo-header h1 {
+  margin: 0;
+}
+
+.todo-header p {
+  margin: 0.25rem 0 0;
+  color: var(--cds-text-secondary);
+}
+
+.todo-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.todo-form-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.todo-form-input-item {
+  margin-bottom: 0;
+}
+
+.todo-list-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.todo-list-section + .todo-list-section {
+  border-top: 1px solid var(--cds-border-subtle-01);
+  padding-top: 1rem;
+}
+
+.todo-list-title {
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+
+.todo-list-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.todo-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.todo-text {
+  margin: 0;
+  word-break: break-word;
+}
+
+.toggle-checkbox,
+.delete-button {
+  min-height: 2rem;
+}
+
+.toggle-checkbox {
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin: 0 0.25rem;
+  accent-color: var(--cds-border-interactive);
+}
+
+.delete-button {
+  padding: 0 0.75rem;
+}
+
+.is-completed {
+  background: var(--cds-layer-selected-02);
+  border-color: var(--cds-border-interactive);
+}
+
+.is-completed .todo-text {
+  color: var(--cds-text-secondary);
+  text-decoration: line-through;
+}
+
+.empty-state {
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+
+@media (max-width: 40rem) {
+  .todo-form-row {
+    grid-template-columns: 1fr;
+  }
+}
