@@ -579,9 +579,23 @@ async function syncSession(session) {
       sourceAnonymousUserId !== activeUser.id
 
     if (shouldClaimAnonymousTodos) {
-      await claimAnonymousTodos(sourceAnonymousUserId)
-      if (syncVersion !== authSyncVersion) return
-      setAuthMessage('Signed in. Your guest todos were moved to this account.')
+      try {
+        await claimAnonymousTodos(sourceAnonymousUserId)
+        if (syncVersion !== authSyncVersion) return
+        setAuthMessage('Signed in. Your guest todos were moved to this account.')
+      } catch {
+        if (syncVersion !== authSyncVersion) return
+        setAuthMessage(
+          'Signed in successfully. We could not move guest todos from your previous session.'
+        )
+        clearPendingAnonymousUserId()
+      }
+    }
+
+    if (
+      shouldClaimAnonymousTodos &&
+      sourceAnonymousUserId === pendingAnonymousUserId
+    ) {
       clearPendingAnonymousUserId()
     }
 
@@ -661,6 +675,7 @@ async function handleSignInSubmit(event) {
     const updatedSession = await getSession()
     await syncSession(updatedSession)
   } catch {
+    clearPendingAnonymousUserId()
     isAuthSubmitting = false
     setErrorMessage('Could not sign in. Please verify your credentials.')
     render()
