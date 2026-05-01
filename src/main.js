@@ -222,10 +222,12 @@ function render() {
   const showPasswordForms = !isEmailAccountUser
   const isSignInModal = authModalMode === 'sign-in'
   const isSignUpModal = authModalMode === 'sign-up'
+  const isAuthModalOpen = isSignInModal || isSignUpModal
   const authModalTitle = isSignInModal ? 'Login' : 'Sign up'
   const authSubmitLabel = isAuthSubmitting ? 'Working...' : 'Continue'
   const authDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
   const signOutDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
+  document.body.classList.toggle('is-modal-open', isAuthModalOpen)
 
   appElement.innerHTML = `
     <main class="todo-app cds--css-grid" aria-live="polite">
@@ -286,7 +288,7 @@ function render() {
         }
       </section>
       ${
-        isSignInModal || isSignUpModal
+        isAuthModalOpen
           ? `
       <div class="auth-modal-overlay" data-action="close-auth-modal">
         <section class="auth-modal" role="dialog" aria-modal="true" aria-label="${authModalTitle}">
@@ -576,6 +578,9 @@ function handleAuthModalClick(event) {
   }
 
   if (action === 'close-auth-modal') {
+    const isBackdropClick = targetElement.classList.contains('auth-modal-overlay')
+    if (isBackdropClick && event.target !== targetElement) return
+
     authModalMode = null
     render()
   }
