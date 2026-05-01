@@ -17,27 +17,42 @@ import {
   clearCompletedTodos as clearCompletedTodoRecords,
   deleteTodo as deleteTodoRecord,
   listTodos,
+  normalizePriority,
   toggleTodo as toggleTodoRecord,
 } from './todos-api'
 
 const appElement = document.querySelector('#app')
 
-function createTodoItem(text) {
+function createTodoItem(text, priority = 'medium') {
   return {
     id: crypto.randomUUID(),
     text,
     isCompleted: false,
+    priority: normalizePriority(priority),
+    createdAt: new Date().toISOString(),
   }
 }
+
 let todos = []
 let isLoading = true
 let errorMessage = ''
 let authMessage = ''
 let currentSession = null
 let isAuthSubmitting = false
-let authSyncVersion = 0
 let authModalMode = null
 const pendingAnonymousUserKey = 'todo-list:pending-anonymous-user-id'
+
+let todoIdPendingCheckAnimation = null
+
+function prefersReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+}
+
+function commitAppMarkup(html) {
+  // Always assign synchronously: startViewTransition can run this callback after
+  // `commitAppMarkup` returns, so `render` would query the DOM before `#todo-form` exists.
+  appElement.innerHTML = html
+}
 
 function setErrorMessage(message) {
   errorMessage = message
@@ -54,6 +69,35 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+function authInlineNotificationMarkup(message) {
+  const text = escapeHtml(message)
+  return `
+    <div
+      class="auth-panel-notice cds--inline-notification cds--inline-notification--low-contrast cds--inline-notification--success cds--inline-notification--hide-close-button"
+      role="status"
+    >
+      <div class="cds--inline-notification__details">
+        <svg
+          class="cds--inline-notification__icon"
+          width="20"
+          height="20"
+          viewBox="0 0 32 32"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M16,2A14,14,0,1,0,30,16,14,14,0,0,0,16,2ZM14,21.5908l-5-5L10.5906,15,14,18.4092,21.41,11l1.5957,1.5859Z"
+          />
+        </svg>
+        <div class="cds--inline-notification__text-wrapper">
+          <p class="cds--inline-notification__subtitle">${text}</p>
+        </div>
+      </div>
+    </div>
+  `
 }
 
 function getCurrentUser() {
@@ -91,18 +135,19 @@ function getAccountLabel() {
   return `Signed in as ${escapeHtml(currentUser.email ?? 'account user')}`
 }
 
-async function addTodo(text) {
+async function addTodo(text, priorityRaw) {
   const trimmedText = text.trim()
   if (!trimmedText) return false
 
+  const priority = normalizePriority(priorityRaw)
   setErrorMessage('')
-  const optimisticTodo = createTodoItem(trimmedText)
+  const optimisticTodo = createTodoItem(trimmedText, priority)
   const previousTodos = [...todos]
   todos = [optimisticTodo, ...todos]
   render()
 
   try {
-    await addTodoRecord(trimmedText)
+    await addTodoRecord(trimmedText, priority)
     todos = await listTodos()
     render()
     return true
@@ -119,6 +164,9 @@ async function toggleTodo(todoId, isCompleted) {
   if (!targetTodo) return
 
   setErrorMessage('')
+  if (isCompleted && !prefersReducedMotion()) todoIdPendingCheckAnimation = todoId
+  else todoIdPendingCheckAnimation = null
+
   const previousTodos = [...todos]
   todos = todos.map((todo) => {
     if (todo.id !== todoId) return todo
@@ -134,6 +182,7 @@ async function toggleTodo(todoId, isCompleted) {
     setErrorMessage('Could not update todo. Please try again.')
   }
 
+  todoIdPendingCheckAnimation = null
   render()
 }
 
@@ -200,11 +249,63 @@ async function handleAppChange(event) {
   await toggleTodo(todoId, inputElement.checked)
 }
 
+function priorityOptionsMarkup(selectedRaw) {
+  const emptySelected =
+    selectedRaw === '' || selectedRaw === null || selectedRaw === undefined
+  const p = emptySelected ? null : normalizePriority(selectedRaw)
+  return `
+    <option value="" ${emptySelected ? 'selected' : ''}>Select priority</option>
+    <option value="high" ${p === 'high' ? 'selected' : ''}>High</option>
+    <option value="medium" ${p === 'medium' ? 'selected' : ''}>Medium</option>
+    <option value="low" ${p === 'low' ? 'selected' : ''}>Low</option>
+  `
+}
+
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
+
+function sortTodosByPriorityHighFirst(list) {
+  return [...list].sort((a, b) => {
+    const pa = PRIORITY_ORDER[normalizePriority(a.priority)]
+    const pb = PRIORITY_ORDER[normalizePriority(b.priority)]
+    if (pa !== pb) return pa - pb
+    const ta = a.createdAt ? Date.parse(a.createdAt) : 0
+    const tb = b.createdAt ? Date.parse(b.createdAt) : 0
+    if (ta !== tb) return tb - ta
+    return String(a.id).localeCompare(String(b.id))
+  })
+}
+
+function priorityDisplayLabel(priorityRaw) {
+  const p = normalizePriority(priorityRaw)
+  if (p === 'high') return 'High'
+  if (p === 'low') return 'Low'
+  return 'Medium'
+}
+
+function priorityCarbonTagKind(priorityRaw) {
+  const p = normalizePriority(priorityRaw)
+  if (p === 'high') return 'red'
+  if (p === 'low') return 'cool-gray'
+  return 'blue'
+}
+
 function createTodoMarkup(todo) {
   const escapedText = escapeHtml(todo.text)
+  const checkAnimClass =
+    todoIdPendingCheckAnimation === todo.id && todo.isCompleted ? ' is-check-animating' : ''
+  const p = normalizePriority(todo.priority)
+  const priorityLabel = priorityDisplayLabel(p)
+  const priorityLabelEscaped = escapeHtml(priorityLabel)
+  const priorityAria = escapeHtml(`Priority: ${priorityLabel}`)
+  const tagKind = priorityCarbonTagKind(p)
 
   return `
-    <li class="todo-item ${todo.isCompleted ? 'is-completed' : ''}" data-id="${todo.id}">
+    <li
+      class="todo-item ${todo.isCompleted ? 'is-completed' : ''}${checkAnimClass}"
+      data-id="${todo.id}"
+      data-priority="${p}"
+      style="view-transition-name: todo-${todo.id}"
+    >
       <input
         type="checkbox"
         class="toggle-checkbox"
@@ -213,21 +314,31 @@ function createTodoMarkup(todo) {
         ${todo.isCompleted ? 'checked' : ''}
       />
       <p class="todo-text">${escapedText}</p>
+      <span
+        class="cds--tag cds--layout--size-sm cds--tag--${tagKind}"
+        aria-label="${priorityAria}"
+      >
+        <span class="cds--tag__label">${priorityLabelEscaped}</span>
+      </span>
       <button
         type="button"
-        class="delete-button cds--btn cds--btn--ghost"
+        class="delete-button cds--btn cds--btn--ghost cds--btn--icon-only"
         data-action="delete"
         aria-label="Delete todo"
       >
-        Delete
+        <span class="cds--btn__icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <path d="M24 9.4L22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z" />
+          </svg>
+        </span>
       </button>
     </li>
   `
 }
 
 function render() {
-  const activeTodos = todos.filter((todo) => !todo.isCompleted)
-  const completedTodos = todos.filter((todo) => todo.isCompleted)
+  const activeTodos = sortTodosByPriorityHighFirst(todos.filter((todo) => !todo.isCompleted))
+  const completedTodos = sortTodosByPriorityHighFirst(todos.filter((todo) => todo.isCompleted))
   const emptyMessage = isLoading ? 'Loading your todos...' : 'No active todos.'
   const currentUser = getCurrentUser()
   const isEmailAccountUser = Boolean(currentUser && !isAnonymousUser(currentUser))
@@ -254,7 +365,7 @@ function render() {
   const signOutDisabledAttribute = isAuthSubmitting ? 'disabled' : ''
   document.body.classList.toggle('is-modal-open', isAuthModalOpen)
 
-  appElement.innerHTML = `
+  commitAppMarkup(`
     <main class="todo-app cds--css-grid" aria-live="polite">
       <header class="todo-header">
         <div class="todo-header-top-row">
@@ -291,14 +402,12 @@ function render() {
           </div>
         </div>
       </header>
-      <section class="auth-panel" aria-label="Authentication">
-        <div class="auth-panel-header">
-          ${
-            isEmailAccountUser
-              ? `<div class="auth-panel-actions">
+      <section class="auth-panel" aria-label="Authentication"><div class="auth-panel-header">${
+        isEmailAccountUser
+          ? `<div class="auth-panel-actions">
             <button
               type="button"
-              class="secondary-button cds--btn cds--btn--tertiary"
+              class="secondary-button cds--btn cds--btn--ghost"
               id="change-password-button"
               data-action="open-change-password-modal"
               ${signOutDisabledAttribute}
@@ -314,15 +423,10 @@ function render() {
               Sign out
             </button>
           </div>`
-              : ''
-          }
-        </div>
-        ${
-          authMessage
-            ? `<p class="todo-inline-info" role="status">${escapeHtml(authMessage)}</p>`
-            : ''
-        }
-      </section>
+          : ''
+      }</div>${
+        authMessage ? authInlineNotificationMarkup(authMessage) : ''
+      }</section>
       ${
         isAuthModalOpen
           ? `
@@ -469,6 +573,16 @@ function render() {
               required
             />
           </div>
+          <div class="cds--form-item todo-form-priority-inline">
+            <select
+              id="todo-priority"
+              name="todo-priority"
+              class="cds--text-input todo-form-priority-select"
+              aria-label="Priority"
+            >
+              ${priorityOptionsMarkup('')}
+            </select>
+          </div>
           <button
             class="cds--btn cds--btn--primary cds--btn--icon-only todo-add-button"
             type="submit"
@@ -511,7 +625,7 @@ function render() {
           : ''
       }
     </main>
-  `
+  `)
 
   const formElement = document.querySelector('#todo-form')
   const inputElement = document.querySelector('#todo-input')
@@ -522,11 +636,16 @@ function render() {
   const resetPasswordFormElement = document.querySelector('#reset-password-form')
   const signOutButtonElement = document.querySelector('#sign-out-button')
 
+  const priorityFormSelect = /** @type {HTMLSelectElement | null} */ (
+    document.querySelector('#todo-priority')
+  )
+
   formElement.addEventListener('submit', async (event) => {
     event.preventDefault()
-    const hasAddedTodo = await addTodo(inputElement.value)
+    const hasAddedTodo = await addTodo(inputElement.value, priorityFormSelect?.value)
     if (!hasAddedTodo) return
     inputElement.value = ''
+    if (priorityFormSelect) priorityFormSelect.value = ''
     inputElement.focus()
   })
 
@@ -542,8 +661,16 @@ appElement.addEventListener('click', handleAppClick)
 appElement.addEventListener('change', handleAppChange)
 render()
 
+/** One sync at a time so INITIAL_SESSION + init() cannot interleave and skip `finally`. */
+let syncSessionChain = Promise.resolve()
+
+function enqueueSyncSession(session) {
+  const pending = syncSessionChain.then(() => syncSession(session))
+  syncSessionChain = pending.catch(() => {})
+  return pending
+}
+
 async function syncSession(session) {
-  const syncVersion = ++authSyncVersion
   const previousSession = currentSession
 
   try {
@@ -551,12 +678,10 @@ async function syncSession(session) {
     if (!activeSession && !hasAuthCallbackInUrl()) {
       activeSession = await ensureSession()
     }
-    if (syncVersion !== authSyncVersion) return
 
     if (!activeSession) {
       currentSession = null
       todos = []
-      if (syncVersion !== authSyncVersion) return
       setErrorMessage('')
       isLoading = false
       isAuthSubmitting = false
@@ -581,10 +706,8 @@ async function syncSession(session) {
     if (shouldClaimAnonymousTodos) {
       try {
         await claimAnonymousTodos(sourceAnonymousUserId)
-        if (syncVersion !== authSyncVersion) return
         setAuthMessage('Signed in. Your guest todos were moved to this account.')
       } catch (error) {
-        if (syncVersion !== authSyncVersion) return
         console.error('claim_anonymous_todos failed', {
           sourceAnonymousUserId,
           code: error?.code ?? null,
@@ -607,13 +730,10 @@ async function syncSession(session) {
     if (activeUser && !activeUser.is_anonymous) clearPendingAnonymousUserId()
 
     todos = await listTodos()
-    if (syncVersion !== authSyncVersion) return
     setErrorMessage('')
   } catch {
-    if (syncVersion !== authSyncVersion) return
     setErrorMessage('Could not load todos. Check your Supabase configuration.')
   } finally {
-    if (syncVersion !== authSyncVersion) return
     isLoading = false
     isAuthSubmitting = false
     render()
@@ -649,7 +769,7 @@ async function handleSignUpSubmit(event) {
 
     authModalMode = null
     const updatedSession = await getSession()
-    await syncSession(updatedSession)
+    await enqueueSyncSession(updatedSession)
   } catch {
     isAuthSubmitting = false
     setErrorMessage('Could not create account. Please check your details.')
@@ -678,7 +798,7 @@ async function handleSignInSubmit(event) {
     setAuthMessage('Signed in successfully.')
     authModalMode = null
     const updatedSession = await getSession()
-    await syncSession(updatedSession)
+    await enqueueSyncSession(updatedSession)
   } catch {
     clearPendingAnonymousUserId()
     isAuthSubmitting = false
@@ -737,7 +857,7 @@ async function handleChangePasswordSubmit(event) {
     setAuthMessage('Your password was updated.')
     authModalMode = null
     const updatedSession = await getSession()
-    await syncSession(updatedSession)
+    await enqueueSyncSession(updatedSession)
   } catch {
     isAuthSubmitting = false
     setErrorMessage('Could not update password. Please try again.')
@@ -769,7 +889,7 @@ async function handleResetPasswordSubmit(event) {
     setAuthMessage('Your password was reset. You are signed in.')
     authModalMode = null
     const updatedSession = await getSession()
-    await syncSession(updatedSession)
+    await enqueueSyncSession(updatedSession)
   } catch {
     isAuthSubmitting = false
     setErrorMessage('Could not reset password. Please try again.')
@@ -786,7 +906,7 @@ async function handleSignOutClick() {
 
     await signOutUser()
     setAuthMessage('Signed out. You are now in a new guest session.')
-    await syncSession(null)
+    await enqueueSyncSession(null)
   } catch {
     isAuthSubmitting = false
     setErrorMessage('Could not sign out. Please try again.')
@@ -838,13 +958,13 @@ async function init() {
     data: { subscription },
   } = onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') authModalMode = 'reset-password'
-    void syncSession(session)
+    void enqueueSyncSession(session)
   })
 
   try {
     let session = await getSession()
     if (!session && !hasAuthCallbackInUrl()) session = await ensureSession()
-    await syncSession(session)
+    await enqueueSyncSession(session)
 
     if (hasAuthCallbackInUrl()) {
       const hashParams = new URLSearchParams(window.location.hash.slice(1))

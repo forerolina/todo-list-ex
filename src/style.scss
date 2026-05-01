@@ -3,6 +3,8 @@
 @use '@carbon/styles/scss/components/button';
 @use '@carbon/styles/scss/components/text-input';
 @use '@carbon/styles/scss/components/form';
+@use '@carbon/styles/scss/components/tag';
+@use '@carbon/styles/scss/components/notification';
 
 *,
 *::before,
@@ -73,13 +75,6 @@ body.is-modal-open {
   background: var(--cds-support-error);
 }
 
-.todo-inline-info {
-  margin: 0;
-  padding: 0.75rem;
-  color: var(--cds-text-primary);
-  background: var(--cds-layer-accent-01);
-}
-
 .todo-account-status {
   margin: 0;
   padding: 0.25rem 0.75rem;
@@ -96,18 +91,29 @@ body.is-modal-open {
 }
 
 .auth-panel {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-block: 0.375rem;
+  padding-inline: 1rem;
   border: 1px solid var(--cds-border-subtle-01);
   background: var(--cds-layer-02);
 }
 
 .auth-panel-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
+  margin-block: 0;
+}
+
+.auth-panel-header + .auth-panel-notice {
+  margin-block-start: 0.75rem;
+}
+
+.auth-panel-notice.cds--inline-notification {
+  max-inline-size: 100%;
 }
 
 .auth-panel-actions {
@@ -188,13 +194,33 @@ body.is-modal-open {
 
 .todo-form-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 0.5rem;
   align-items: center;
 }
 
 .todo-form-input-item {
   margin-bottom: 0;
+}
+
+.todo-form-priority-inline {
+  margin-block-end: 0;
+  min-inline-size: 0;
+}
+
+select.cds--text-input.todo-form-priority-select {
+  cursor: pointer;
+
+  &:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 1px;
+  }
+}
+
+.todo-form-priority-select {
+  inline-size: 100%;
+  min-inline-size: 5.5rem;
+  max-inline-size: 7.5rem;
 }
 
 .todo-list-section {
@@ -229,12 +255,20 @@ body.is-modal-open {
 
 .todo-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 0.5rem;
   align-items: center;
   padding: 0.5rem;
   background: var(--cds-layer-02);
   border: 1px solid var(--cds-border-subtle-01);
+}
+
+.todo-item .cds--tag {
+  flex-shrink: 0;
+}
+
+.is-completed .todo-item .cds--tag {
+  opacity: 0.88;
 }
 
 .todo-text {
@@ -254,10 +288,6 @@ body.is-modal-open {
   accent-color: var(--cds-border-interactive);
 }
 
-.delete-button {
-  padding: 0 0.75rem;
-}
-
 .is-completed {
   background: var(--cds-layer-selected-02);
   border-color: var(--cds-border-interactive);
@@ -266,6 +296,34 @@ body.is-modal-open {
 .is-completed .todo-text {
   color: var(--cds-text-secondary);
   text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html::view-transition-old(*),
+  html::view-transition-new(*) {
+    animation-duration: 280ms;
+    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+  }
+}
+
+@keyframes todo-check-pop {
+  0% {
+    transform: scale(0.85);
+  }
+
+  55% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .todo-item.is-check-animating .toggle-checkbox {
+    animation: todo-check-pop 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  }
 }
 
 .empty-state {
@@ -302,5 +360,14 @@ body.is-modal-open {
 
   .todo-form-row {
     grid-template-columns: 1fr;
+  }
+
+  .todo-form-priority-inline .todo-form-priority-select {
+    max-inline-size: none;
+    inline-size: 100%;
+  }
+
+  .todo-add-button {
+    justify-self: stretch;
   }
 }
